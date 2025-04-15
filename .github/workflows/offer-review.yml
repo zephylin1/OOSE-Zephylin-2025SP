@@ -1,0 +1,40 @@
+name: Offer Review Bot
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review-offer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the PR code
+        uses: actions/checkout@v3
+
+      - name: Read the offer file
+        id: read_offer
+        run: |
+          if [[ -f offer.txt ]]; then
+            AMOUNT=$(grep -o '\$[0-9]*' offer.txt | tr -d '$')
+            echo "Offer: $AMOUNT"
+            echo "amount=$AMOUNT" >> $GITHUB_OUTPUT
+          else
+            echo "No offer.txt found."
+            echo "amount=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const amount = parseInt('${{ steps.read_offer.outputs.amount }}');
+            const message = amount >= 30 
+              ? "✅ Accept: This is a fair offer." 
+              : "❌ Reject: This offer is too low.";
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
