@@ -15,8 +15,8 @@ jobs:
         id: extract_offer
         run: |
           if [[ -f offer.txt ]]; then
-            AMOUNT=$(grep -o '\$[0-9]\+' offer.txt | tr -d '$')
-            echo "amount=$AMOUNT" >> $GITHUB_OUTPUT
+            AMOUNT=$(grep -o '\$[0-9]*' offer.txt | tr -d '$')
+            echo "Offer: $AMOUNT"
           else
             echo "offer.txt not found."
             echo "amount=" >> $GITHUB_OUTPUT
