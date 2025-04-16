@@ -8,37 +8,30 @@ jobs:
   review-offer:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR branch
+      - name: Checkout the PR code
         uses: actions/checkout@v3
 
-      - name: Extract Offer Amount
-        id: extract_offer
+      - name: Read the offer file
+        id: read_offer
         run: |
           if [[ -f offer.txt ]]; then
             AMOUNT=$(grep -o '\$[0-9]*' offer.txt | tr -d '$')
             echo "Offer: $AMOUNT"
+            echo "amount=$AMOUNT" >> $GITHUB_OUTPUT
           else
-            echo "offer.txt not found."
-            echo "amount=" >> $GITHUB_OUTPUT
+            echo "No offer.txt found."
+            echo "amount=0" >> $GITHUB_OUTPUT
           fi
 
-      - name: Review the Offer
+      - name: Comment on PR
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const amount = parseInt('${{ steps.extract_offer.outputs.amount }}');
-            const isValid = !isNaN(amount) && amount >= 0 && amount <= 100;
-
-            let message;
-            if (!isValid) {
-              message = "⚠️ Invalid offer: Please offer a dollar amount between $0 and $100.";
-            } else if (amount >= 30) {
-              message = "✅ Accept: This is a fair offer.";
-            } else {
-              message = "❌ Reject: This offer is too low.";
-            }
-
+            const amount = parseInt('${{ steps.read_offer.outputs.amount }}');
+            const message = amount >= 30 
+              ? "✅ Accept: This is a fair offer." 
+              : "❌ Reject: This offer is too low.";
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
